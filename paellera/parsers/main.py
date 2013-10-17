@@ -97,7 +97,8 @@ class MainParser(BaseParser):
         
     def parse(self):
         self.parse_db_element()
-        
+        return self.dbparsed
+    
         
         
     
