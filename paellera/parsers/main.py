@@ -1,4 +1,5 @@
 import os
+from ConfigParser import ConfigParser
 
 import bs4
 
@@ -65,6 +66,12 @@ class MainParser(BaseParser):
             dc[name] = file(filename).read()
         return dc
 
+    def get_default_environment(self):
+        filename = os.path.join(self.basedir, 'default-environment')
+        cfg = ConfigParser()
+        cfg.read([filename])
+        return cfg
+    
     def parse_db_element(self):
         filename = os.path.join(self.basedir, 'database.xml')
         soup = bs4.BeautifulSoup(file(filename).read(), 'lxml')
@@ -85,6 +92,8 @@ class MainParser(BaseParser):
         machines = self.get_machine_names()
         pm = self.machparser.parse(machines)
         self.dbparsed['machines'] = pm
+        cfg = self.get_default_environment()
+        self.dbparsed['default_environment'] = cfg
         
     def parse(self):
         self.parse_db_element()
