@@ -254,13 +254,13 @@ class Machine(Base):
     name = Column(Unicode, unique=True)
     profile_id = Column(Integer,
                         ForeignKey('profiles.id'),
-                        nullable=False)
+                        nullable=True)
     diskconfig_id = Column(Integer,
                            ForeignKey('diskconfigs.id'),
-                           nullable=False)
+                           nullable=True)
     kernel_id = Column(Integer,
                        ForeignKey('kernels.id'),
-                       nullable=False)
+                       nullable=True)
 
 class MachineParent(Base):
     __tablename__ = 'machine_parent'

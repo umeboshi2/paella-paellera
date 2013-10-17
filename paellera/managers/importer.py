@@ -146,7 +146,7 @@ class SuiteImporter(object):
             except NoParentError, e:
                 tlist.append(trait)
                 print "trait %s -> %s" % (trait['name'], e)
-                print [x['name'] for x in tlist], len(tlist)
+                print len(tlist), 'Traits left'
         return s
     
 
@@ -160,14 +160,24 @@ class ImportManager(object):
         self.parsed = parsed
 
     def _import(self):
+        print "importing apt keys"
         self._import_aptkeys()
+        print "importing apt sources"
         self._import_aptsources()
+        print "importing default environment"
         self._import_default_environment()
+        print "importing kernels"
         self._import_kernels()
+        print "importing diskconfigs"
         self._import_diskconfigs()
+        print "importing suites"
         self._import_suites()
+        print "importing families"
         self._import_families()
+        print "importing profiles"
         self._import_profiles()
+        print "importing machines"
+        self._import_machines()
         
     def _import_aptkeys(self):
         aptkeys = self.parsed['aptkeys']
@@ -326,7 +336,73 @@ class ImportManager(object):
                     pv.value = value
                     self.session.add(pv)
                     
-
+    def _import_machine(self, machine):
+        name = machine['name']
+        parent = machine['parent']
+        if parent is not None:
+            basequery = self.session.query(Machine)
+            q = basequery.filter_by(name=parent)
+            try:
+                q.one()
+            except NoResultFound:
+                raise NoParentError, "%s doesn't exist" % parent
+        with transaction.manager:
+            m = Machine()
+            m.name = name
+            profile = machine['profile']
+            if profile is not None:
+                pf = self.session.query(Profile).filter_by(name=profile).one()
+                m.profile_id = pf.id
+            dc = machine['diskconfig']
+            if dc is not None:
+                ddc = self.session.query(DiskConfig).filter_by(name=dc).one()
+                m.diskconfig_id = ddc.id
+            kernel = machine['kernel']
+            if kernel is not None:
+                k = self.session.query(Kernel).filter_by(name=kernel).one()
+                m.kernel_id = k.id
+            self.session.add(m)
+            m = self.session.merge(m)
+            parent = machine['parent']
+            if parent is not None:
+                p = self.session.query(Machine).filter_by(name=parent).one()
+                mp = MachineParent()
+                mp.machine_id = m.id
+                mp.parent_id = p.id
+                self.session.add(mp)
+            for family in machine['families']:
+                f = self.session.query(Family).filter_by(name=family).one()
+                mf = MachineFamily()
+                mf.machine_id = m.id
+                mf.family_id = f.id
+                self.session.add(mf)
+            for trt, name, value in machine['variables']:
+                bt = self._get_base_trait(trt)
+                mv = MachineVariable()
+                mv.machine_id = m.id
+                mv.trait_id = bt.id
+                mv.name = name
+                mv.value = value
+                self.session.add(mv)
+            for name, content in machine['scripts'].items():
+                ms = MachineScript()
+                ms.machine_id = m.id
+                ms.name = name
+                ms.content = content
+                self.session.add(ms)
+                
+            
+    
     def _import_machines(self):
-        pass
+        machines = self.parsed['machines']
+        mlist = machines.keys()
+        while mlist:
+            machname = mlist.pop(0)
+            try:
+                self._import_machine(machines[machname])
+            except NoParentError, e:
+                mlist.append(machname)
+                print "Machine %s --> %s" % (machname, e)
+                print len(mlist)
+                
     
