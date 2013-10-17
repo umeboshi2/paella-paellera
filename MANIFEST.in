@@ -1,0 +1,5 @@
+recursive-include paellera/templates *.mako *.pt
+recursive-include paellera/static *
+#recursive-include paellera/resources *
+include setup.py
+
