@@ -11,7 +11,9 @@ from sqlalchemy.exc import IntegrityError
 
 from sqlalchemy.ext.declarative import declarative_base
 
-Base = declarative_base()
+#Base = declarative_base()
+from .base import Base
+
 name_col = Unicode(100)
 
 ##############################################################
@@ -48,11 +50,6 @@ MACHINE_SCRIPT_TYPE = Enum(*MACHINE_SCRIPTS,
 ##############################################################
 # base tables
 ##############################################################
-
-class ScriptName(Base):
-    __tablename__ = 'script_names'
-    id = Column(Integer, primary_key=True)
-    name = Column(Unicode)
 
 class ArchiveKey(Base):
     __tablename__ = 'archive_keys'
@@ -320,6 +317,18 @@ class CurrentVariable(Base):
     name = Column(Unicode, primary_key=True, nullable=False)
     value = Column(UnicodeText)
     
+
+Suite.aptsources = relationship(SuiteAptSource,
+                                order_by=SuiteAptSource.position)
+Suite.traits = relationship(Trait)
+
+
+Trait.base = relationship(BaseTrait)
+#Trait.parents = relationship(TraitParent)
+Trait.packages = relationship(TraitPackage)
+Trait.variables = relationship(TraitVariable)
+Trait.scripts = relationship(TraitScript)
+Trait.templates = relationship(TraitTemplate)
 
 
 if __name__ == '__main__':
