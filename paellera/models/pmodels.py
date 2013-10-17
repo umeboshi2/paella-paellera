@@ -330,6 +330,16 @@ Trait.variables = relationship(TraitVariable)
 Trait.scripts = relationship(TraitScript)
 Trait.templates = relationship(TraitTemplate)
 
+Family.variables = relationship(FamilyVariable)
+
+Profile.traits = relationship(ProfileTrait)
+Profile.variables = relationship(ProfileVariable)
+Profile.suite = relationship(Suite)
+
+Machine.kernel = relationship(Kernel)
+Machine.profile = relationship(Profile)
+Machine.diskconfig = relationship(DiskConfig)
+
 
 if __name__ == '__main__':
     import os
