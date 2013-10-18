@@ -40,7 +40,7 @@ class TraitImporter(object):
         self.session = session
         self.parsed = None
 
-    def import_trait(self, suite_id, trait):
+    def import_trait(self, suite, trait):
         name = trait['name']
         btraits = self.session.query(BaseTrait).filter_by(name=name).all()
         if not btraits:
@@ -54,7 +54,7 @@ class TraitImporter(object):
             if btraits:
                 raise RuntimeError, "bad database"
         q = self.session.query(Trait)
-        q = q.filter_by(suite_id=suite_id)
+        q = q.filter_by(suite_id=suite.id)
         basequery = q.filter(BaseTrait.id == Trait.trait_id)
         parents_exist = True
         for parent in trait['parents']:
@@ -67,7 +67,7 @@ class TraitImporter(object):
             dbobjs = list()
             t = Trait()
             t.name = name
-            t.suite_id = suite_id
+            t.suite_id = suite.id
             t.trait_id = bt.id
             t.description = trait['description']
             self.session.add(t)
@@ -106,8 +106,7 @@ class TraitImporter(object):
                 ts.name = name
                 ts.content = content
                 self.session.add(ts)
-                
-                
+        print "Suite %s, Imported Trait %s" % (suite.name, trait['name'])                
                 
     
 class SuiteImporter(object):
@@ -139,14 +138,18 @@ class SuiteImporter(object):
                 sas.position = aptsource['order']
                 self.session.add(sas)
         tlist = list(suite['traits'])
+        tlist.sort()
         while tlist:
             trait = tlist.pop(0)
+            imported = False
             try:
-                self.traits.import_trait(s.id, trait)
+                self.traits.import_trait(s, trait)
+                imported = True
             except NoParentError, e:
                 tlist.append(trait)
-                print "trait %s -> %s" % (trait['name'], e)
-                print len(tlist), 'Traits left'
+                imported = False
+            if imported:
+                print len(tlist)
         return s
     
 

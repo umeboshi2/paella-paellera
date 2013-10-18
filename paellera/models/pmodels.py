@@ -84,6 +84,11 @@ class SuiteAptSource(Base):
                     nullable=False)
     position = Column(Integer)
 
+    def __repr__(self):
+        s = '<SuiteAptSource: %s(%s)>' 
+        return s % (self.suite.name, self.aptsource.name)
+    
+
 
 ##############################################################
 # trait tables
@@ -105,6 +110,14 @@ class Trait(Base):
                       nullable=False)
     description = Column(UnicodeText)
 
+    @property
+    def name(self):
+        return self.base.name
+
+    def __repr__(self):
+        return '<Trait: %s>' % self.name
+    
+
 class TraitParent(Base):
     __tablename__ = 'trait_parent'
     trait_id = Column(Integer,
@@ -123,6 +136,11 @@ class TraitPackage(Base):
                      nullable=False)
     action = Column(Unicode, primary_key=True,
                     default=u'install')
+
+    def __repr__(self):
+        return '<TraitPackage: %s>' % self.package
+
+    
     
 class TraitVariable(Base):
     __tablename__ = 'trait_variables'
@@ -258,7 +276,14 @@ class Machine(Base):
     kernel_id = Column(Integer,
                        ForeignKey('kernels.id'),
                        nullable=True)
+    
+    @property
+    def parent(self):
+        if self.parent_assoc is None:
+            return
+        return self.parent_assoc.parent
 
+    
 class MachineParent(Base):
     __tablename__ = 'machine_parent'
     machine_id = Column(Integer,
@@ -317,28 +342,70 @@ class CurrentVariable(Base):
     name = Column(Unicode, primary_key=True, nullable=False)
     value = Column(UnicodeText)
     
+##############################################################
+#AptSource.
+#primaryjoin = 'Suite.id == SuiteAptSource.suite_id'
+AptSource.suites = relationship(Suite,
+                                secondary='suite_apt_sources',
+                                foreign_keys=[SuiteAptSource.suite_id,
+                                              SuiteAptSource.apt_id])
 
+    
 Suite.aptsources = relationship(SuiteAptSource,
-                                order_by=SuiteAptSource.position)
+                                order_by=SuiteAptSource.position,
+                                backref='suite')
 Suite.traits = relationship(Trait)
 
+SuiteAptSource.aptsource = relationship(AptSource)
 
+##############################################################
+
+Trait.suite = relationship(Suite)
 Trait.base = relationship(BaseTrait)
-#Trait.parents = relationship(TraitParent)
+primaryjoin = "Trait.id == TraitParent.trait_id"
+Trait.parents = relationship(TraitParent,
+                             primaryjoin=primaryjoin,
+                             backref='trait')
 Trait.packages = relationship(TraitPackage)
 Trait.variables = relationship(TraitVariable)
 Trait.scripts = relationship(TraitScript)
 Trait.templates = relationship(TraitTemplate)
+TraitParent.parent = relationship(Trait,
+                                  foreign_keys=[TraitParent.parent_id])
 
+##############################################################
+
+primaryjoin = 'Family.id == FamilyParent.family_id'
+Family.parents = relationship(FamilyParent,
+                              primaryjoin=primaryjoin,
+                              backref='family')
+FamilyParent.parent = relationship(Family,
+                                   foreign_keys=[FamilyParent.parent_id])
 Family.variables = relationship(FamilyVariable)
+
+##############################################################
 
 Profile.traits = relationship(ProfileTrait)
 Profile.variables = relationship(ProfileVariable)
 Profile.suite = relationship(Suite)
 
+##############################################################
+
 Machine.kernel = relationship(Kernel)
 Machine.profile = relationship(Profile)
 Machine.diskconfig = relationship(DiskConfig)
+primaryjoin = "Machine.id == MachineParent.machine_id"
+Machine.parent_assoc = relationship(MachineParent,
+                              primaryjoin=primaryjoin,
+                              uselist=False)
+MachineParent.parent = relationship(Machine,
+                                    foreign_keys=[MachineParent.parent_id])
+MachineParent.machine = relationship(Machine,
+                                     foreign_keys=[MachineParent.machine_id])
+
+
+
+
 
 
 if __name__ == '__main__':
